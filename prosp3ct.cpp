@@ -17,10 +17,12 @@
 
 #define	MTU	1500
 
-#define	VERS	"1.0"
+#define	VERS	"1.1"
 #define DESC	"prosp3ct - a blazing fast Bing based OSINT engine"
 
 using namespace std;
+
+string fArg = "";
 
 void Initialize()
 {
@@ -115,15 +117,16 @@ list<string> GetQueryResults(string query, int page=0)
 	return results;
 }
 
-void PrintUsage(string arg, bool desc=false)
+void PrintUsage(bool desc=false)
 {
 	if (desc)
 		cout << endl << "\t" << DESC << endl;
-	cout << endl << "\tUsage:\t" << arg << " <-q string>/<-i string> [-p int] [-o string] [-vh]" << endl << endl;
+	cout << endl << "\tUsage:\t" << fArg << " <-q string>/<-i string> [-p int] [-o string] [-s string] [-vh]" << endl << endl;
 	cout << "\t\t-q <query>\tscrape for a single query" << endl;
 	cout << "\t\t-i <file>\tload queries from a file" << endl;
 	cout << "\t\t-p <pages>\tpages per query (default: 1)" << endl;
 	cout << "\t\t-o <file>\toutput to file" << endl;
+	cout << "\t\t-s <site>\tspecify a target site for the queries" << endl;
 	cout << "\t\t-v\t\tverbose when writing to file" << endl;
 	cout << "\t\t-h\t\tprint this help menu" << endl << endl;
 }
@@ -147,6 +150,8 @@ string GetTime()
 
 int main(int argc, char *argv[])
 {
+	fArg = argv[0];
+	string site = "";
 	string query = "";
 	string outFile = "";
 	bool isFile = false;
@@ -154,14 +159,14 @@ int main(int argc, char *argv[])
 	unsigned int pages = 1;
 	if (argc == 1)
 	{
-		PrintUsage(argv[0], true);
+		PrintUsage(true);
 		return 0;
 	}
 	for (int c = 1; c < argc; c++)
 	{
 		if (strcmp(argv[c],"-h") == 0)
 		{
-			PrintUsage(argv[0], true);
+			PrintUsage(true);
 			return 0;
 		}
 	}
@@ -176,7 +181,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				MissingArg(argv[c], "<search query>");
-				PrintUsage(argv[0]);
+				PrintUsage();
 				return 0;
 			}
 			c++;
@@ -189,15 +194,15 @@ int main(int argc, char *argv[])
 				query = argv[c+1];
 				if (!filesystem::exists(query))
 				{
-					cout << endl << "\tQuery input file not found, usage: -q <query file location>" << endl;
-					PrintUsage(argv[0]);
+					cout << endl << "\tQuery input file not found, usage: -i <query file location>" << endl;
+					PrintUsage();
 					return 0;
 				}
 			}
 			else
 			{
 				MissingArg(argv[c], "<query file location>");
-				PrintUsage(argv[0]);
+				PrintUsage();
 				return 0;
 			}
 			c++;
@@ -212,7 +217,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				MissingArg(argv[c], "<number of pages>");
-				PrintUsage(argv[0]);
+				PrintUsage();
 				return 0;
 			}
 			if (isNumber(argv[c+1]))
@@ -221,14 +226,14 @@ int main(int argc, char *argv[])
 				if (pages < 1)
 				{
 					cout << endl << "\tPage count must be a positive number, usage: -p <number of pages>" << endl;
-					PrintUsage(argv[0]);
+					PrintUsage();
 					return 0;
 				}
 			}
 			else
 			{
 				cout << endl << "\tFlag -p takes integer as input, usage: -p <number of pages>" << endl;
-				PrintUsage(argv[0]);
+				PrintUsage();
 				return 0;
 			}
 			c++;
@@ -242,10 +247,24 @@ int main(int argc, char *argv[])
 			else
 			{
 				MissingArg(argv[c], "<output file location>");
-				PrintUsage(argv[0]);
+				PrintUsage();
 				return 0;
 			}
 			c++;	
+		}
+		else if (strcmp(argv[c],"-s") == 0)
+		{
+			if (c+1 != argc)
+			{
+				site = argv[c+1];
+			}
+			else
+			{
+				MissingArg(argv[c], "<site name>");
+				PrintUsage();
+				return 0;
+			}
+			c++;
 		}
 		else if (strcmp(argv[c],"-v") == 0)
 			verbose = true;
@@ -255,14 +274,14 @@ int main(int argc, char *argv[])
 				cout << endl << "\tUnrecognized flag \"" << argv[c] << "\"" << endl;
 			else
 				cout << endl << "\tUnexpected argument \"" << argv[c] << "\"" << endl;
-			PrintUsage(argv[0]);
+			PrintUsage();
 			return 0;
 		}
 	}
 	if (query == "")
 	{
 		cout << endl << "\tNo queries specified. Did you forget the -q/-i flag?"  << endl;
-		PrintUsage(argv[0]);
+		PrintUsage();
 		return 0;
 	}
 	// Init stage
@@ -276,6 +295,8 @@ int main(int argc, char *argv[])
 	}
 	queryFstream.close();
 	cout << "     Settings:" << endl;
+	if (site != "")
+		cout << "  Site: " << site << endl;
 	if (isFile)
 		cout << "  Search queries loaded: " << queries.size() << endl;
 	else
@@ -308,7 +329,11 @@ int main(int argc, char *argv[])
 	{
 		for (unsigned int c = 0; c < pages; c++)
 		{
-			list<string> results = GetQueryResults((*queryIt), c);
+			list<string> results;
+			if (site == "")
+				results = GetQueryResults((*queryIt), c);
+			else
+				results = GetQueryResults(("site:" + site + "+" + (*queryIt)), c);
 			list<string>::iterator rit;
 			for (rit = results.begin(); rit != results.end(); rit++)
 			{

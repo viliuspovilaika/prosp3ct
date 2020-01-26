@@ -1,4 +1,4 @@
-# prosp3ct
+# prosp3ct 1.1
 A C++ OSINT-oriented Bing scraper that is designed for speed and efficiency.
 
 
@@ -27,12 +27,16 @@ chmod +x compile_prosp3ct.sh
 
 ## Usage
 ```
-./prosp3ct.bin <-q string>/<-i string> [-p int] [-o string] [-vh]
+./prosp3ct.bin <-q string>/<-i string> [-p int] [-o string] [-s string] [-vh]
 ```
 ### Examples
 Get 5 pages of results by the search parameter (query) "github"
 ```
 ./prosp3ct.bin -q "github" -p 5
+```
+Get 5 pages of results for the query "prosp3ct" in github.com
+```
+./prosp3ct.bin -q "prosp3ct" -p 5 -s "github.com"
 ```
 Load search parameters from a file named "input.txt"
 ```
